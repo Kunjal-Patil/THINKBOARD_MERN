@@ -20,7 +20,7 @@ app.use(cors({
 app.use(ratelimiter);
 app.use("/api/notes", notesRoutes);
 
-
+//Hosting backend
 app.listen(PORT, () => {
     // Also updated this log to correctly display the port number
     console.log(`Server started on PORT ${PORT}`);
