@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import path from "path";
+import { fileURLToPath } from "url";
 
 import notesRoutes from "./routes/notesRoutes.js";
 import { connectDB } from "./config/db.js";
@@ -11,9 +12,16 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5001;
-const __dirname = path.resolve();
 
-// middleware
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// --- Diagnostic Logging ---
+console.log(`NODE_ENV: ${process.env.NODE_ENV}`);
+console.log(`__dirname: ${__dirname}`);
+// --- End Diagnostic Logging ---
+
+// --- Middleware ---
 if (process.env.NODE_ENV !== "production") {
   app.use(
     cors({
@@ -21,27 +29,35 @@ if (process.env.NODE_ENV !== "production") {
     })
   );
 }
-app.use(express.json()); // this middleware will parse JSON bodies: req.body
+app.use(express.json());
 app.use(rateLimiter);
 
-// our simple custom middleware
-// app.use((req, res, next) => {
-//   console.log(`Req method is ${req.method} & Req URL is ${req.url}`);
-//   next();
-// });
-
+// --- API Routes ---
 app.use("/api/notes", notesRoutes);
 
+// --- Production Deployment Logic ---
 if (process.env.NODE_ENV === "production") {
-  app.use(express.static(path.join(__dirname, "../frontend/thinkboard/dist")));
+  const buildPath = path.join(__dirname, "..", "..", "frontend", "thinkboard", "dist");
+
+  // --- Diagnostic Logging ---
+  console.log(`Serving static files from: ${buildPath}`);
+  // --- End Diagnostic Logging ---
+
+  app.use(express.static(buildPath));
 
   app.get("*", (req, res) => {
-    res.sendFile(path.join(__dirname, "../frontend/thinkboard", "dist", "index.html"));
+    const indexPath = path.join(buildPath, "index.html");
+    // --- Diagnostic Logging ---
+    console.log(`Attempting to send file: ${indexPath}`);
+    // --- End Diagnostic Logging ---
+    res.sendFile(indexPath);
   });
 }
 
+// --- Start Server ---
 connectDB().then(() => {
   app.listen(PORT, () => {
-    console.log("Server started on PORT:", PORT);
+    console.log(`Server started on PORT: ${PORT}`);
   });
 });
+
